@@ -50,19 +50,34 @@ if (__IS_BROWSER) {
 // export server render
 let serverRender, ReactDOMServer;
 if (!__IS_BROWSER) {
-  serverRender = async (ctx) => {
-    const pathname = ctx.req.url;
-    require('@tmp/history').default.push(pathname);
+  serverRender = async (ctx = {}) => {
+    // ctx.req.url may be `/bar?locale=en-US`
+    const [pathname] = (ctx.req.url || '').split('?');
+    require('@tmp/history').default.push(ctx.req.url);
     let props = {};
     const activeRoute = findRoute(require('./router').routes, pathname) || false;
-    if (activeRoute && activeRoute.component.getInitialProps) {
-      props = await activeRoute.component.getInitialProps(ctx);
+    if (activeRoute && activeRoute.component && activeRoute.component.getInitialProps) {
+      const initialProps = plugins.apply('modifyInitialProps', {
+        initialValue: {},
+      });
+      props = await activeRoute.component.getInitialProps({
+        route: activeRoute,
+        isServer: true,
+        // only exist in server
+        req: ctx.req || {},
+        res: ctx.res || {},
+        ...initialProps,
+      });
       props = plugins.apply('initialProps', {
          initialValue: props,
       });
     } else {
-      // message activeRoute not found
-      console.log(`${pathname} activeRoute not found`);
+      // message activeRoute or getInitialProps not found
+      console.log(
+        !activeRoute
+          ? `${pathname} activeRoute not found`
+          : `${pathname} activeRoute's getInitialProps function not found`
+      );
     }
     const rootContainer = plugins.apply('rootContainer', {
       initialValue: React.createElement(require('./router').default, props),
@@ -71,8 +86,10 @@ if (!__IS_BROWSER) {
       {{{ htmlTemplateMap }}}
     };
     return {
-      htmlElement: htmlTemplateMap[pathname],
+      htmlElement: activeRoute && activeRoute.path ? htmlTemplateMap[activeRoute.path] : '',
       rootContainer,
+      matchPath: activeRoute && activeRoute.path,
+      g_initialData: props,
     };
   }
   // using project react-dom version

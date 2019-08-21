@@ -1,6 +1,6 @@
 // https://umijs.org/config/
 import { ExternalsElement, Condition } from 'webpack';
-import IWebpackChainConfig from 'webpack-chain';
+import * as IWebpackChainConfig from 'webpack-chain';
 import { IChangeWebpackConfigFunc } from './index';
 
 export type IPlugin<T = any> = string | [string, T];
@@ -32,6 +32,7 @@ export interface IAFWebpackConfig {
   cssModulesWithAffix?: boolean;
   cssnano?: object;
   cssPublicPath?: string;
+  generateCssModulesTypings?: boolean;
   define?: object;
   devServer?: object; // https://webpack.js.org/configuration/dev-server/#devserver
   devtool?: string | false; // https://webpack.js.org/configuration/devtool/
@@ -66,9 +67,20 @@ export interface IAFWebpackConfig {
 }
 
 type WhitelistOption = string | RegExp;
-export interface IExportSSROpts {
-  externalWhitelist?: WhitelistOption[];
-}
+export type IExportSSROpts =
+  | {
+      /** not external library, https://github.com/liady/webpack-node-externals#optionswhitelist- */
+      externalWhitelist?: WhitelistOption[];
+      /** webpack-node-externals config */
+      nodeExternalsOpts?: object;
+      /** client chunkMaps manifest, default: ssr-client-mainifest.json */
+      manifestFileName?: string;
+      /** disable ssr external */
+      disableExternal?: boolean;
+      /** disable ssr external, build all modules in `umi.server.js` */
+      disableExternalWhiteList?: string[] | object;
+    }
+  | boolean;
 
 interface IConfig extends IAFWebpackConfig {
   // basic config
@@ -92,7 +104,7 @@ interface IConfig extends IAFWebpackConfig {
   targets?: {
     [key: string]: number;
   };
-  ssr?: boolean | IExportSSROpts;
+  ssr?: IExportSSROpts;
 }
 
 export default IConfig;

@@ -439,7 +439,7 @@ describe('Service', () => {
     );
     service.runCommand('build');
 
-    expect(service.config).toEqual({ ssr: true, manifest: {} });
+    expect(service.config).toEqual({ ssr: true });
     expect(service.webpackConfig).toBeTruthy();
     expect(
       pick(service.ssrWebpackConfig.output, ['libraryTarget', 'filename', 'chunkFilename']),
@@ -467,6 +467,31 @@ describe('Service', () => {
     expect(service.config.ssr.externalWhitelist).toEqual(
       expect.arrayContaining([/^@alipay\/bigfish(\/.*)?$/, 'antd-mobile']),
     );
+    expect(service.webpackConfig).toBeTruthy();
+    expect(
+      pick(service.ssrWebpackConfig.output, ['libraryTarget', 'filename', 'chunkFilename']),
+    ).toEqual({
+      libraryTarget: 'commonjs2',
+      filename: '[name].server.js',
+      chunkFilename: '[name].server.async.js',
+    });
+  });
+
+  it('runCommand ssr disableExternal', () => {
+    const service = new Service({
+      cwd: join(fixtures, 'plugin-ssr', 'disableExternal'),
+    });
+    const callback = jest.fn(() => {});
+    service.registerCommand(
+      'build',
+      {
+        webpack: {},
+      },
+      callback,
+    );
+    service.runCommand('build');
+
+    expect(service.ssrWebpackConfig.externals).toEqual([]);
     expect(service.webpackConfig).toBeTruthy();
     expect(
       pick(service.ssrWebpackConfig.output, ['libraryTarget', 'filename', 'chunkFilename']),
